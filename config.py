@@ -62,47 +62,47 @@ GOOGLE_CREDENTIALS_PATH = os.environ.get(
 # Mostafa walks every URL with Playwright, collects job detail links, reads them.
 # Edit this list freely — it's not a secret.
 COMPANY_PORTALS = [
-    # Automotive / hardware / embedded
-    ("Valeo",                "https://jobs.valeo.com/en/search-jobs/Egypt"),
-    ("Siemens",              "https://jobs.siemens.com/jobs?location=Egypt"),
+    # Automotive / hardware / embedded — verified URLs (Apr 2026)
+    ("Valeo",                "https://jobs.smartrecruiters.com/Valeo"),
+    ("Siemens",              "https://jobs.siemens.com/careers?location=Egypt&pid=&filter_include_remote=false"),
     ("Siemens EDA",          "https://jobs.sw.siemens.com/locations/egy/jobs/"),
-    ("Bosch",                "https://www.bosch.com/careers/job-search/?language=en&country=EG"),
-    ("Schneider Electric",   "https://careers.se.com/jobs?location=Egypt"),
-    ("ABB",                  "https://careers.abb.com/global/en/search-results?location=Egypt"),
+    ("Bosch",                "https://jobs.smartrecruiters.com/BoschGroup?search=&country=Egypt"),
+    ("Schneider Electric",   "https://careers.se.com/jobs?keywords=&location=Egypt&page=1"),
+    ("ABB",                  "https://careers.abb.com/global/en/search-results?keywords=&location=Egypt"),
     ("Garmin",               "https://careers.garmin.com/careers-home/jobs?locations=Egypt"),
-    ("Honeywell",            "https://careers.honeywell.com/us/en/search-results?location=Egypt"),
+    ("Honeywell",            "https://careers.honeywell.com/us/en/search-results?keywords=&country=Egypt"),
 
-    # Telecom
-    ("Vodafone",             "https://opportunities.vodafone.com/search/?createNewAlert=false&q=&locationsearch=cairo"),
-    ("e&",                   "https://careers.eand.com/search/?q=&locationsearch=cairo"),
+    # Telecom — verified
+    ("Vodafone",             "https://opportunities.vodafone.com/search/?createNewAlert=false&q=&locationsearch=Cairo&optionsFacetsDD_country=EG"),
+    ("e&",                   "https://www.eand.com/en/about-us/careers.html"),
     ("Orange Egypt",         "https://orange.jobs/jobs/search.aspx?LCID=1033&country=Egypt"),
-    ("Ericsson",             "https://jobs.ericsson.com/careers?location=Egypt"),
-    ("Nokia",                "https://www.nokia.com/about-us/careers/job-search/?country=Egypt"),
+    ("Ericsson",             "https://jobs.ericsson.com/careers?location=Egypt&pid=&domain=ericsson.com&sort_by=relevance"),
+    ("Nokia",                "https://fa-evmr-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions?keyword=&location=Egypt"),
     ("Huawei",               "https://career.huawei.com/reccampportal/portal5/social-recruitment.html?locationName=Egypt"),
 
     # Big Tech
-    ("Microsoft",            "https://jobs.careers.microsoft.com/global/en/search?lc=Egypt"),
-    ("Google",               "https://www.google.com/about/careers/applications/jobs/results/?location=Egypt"),
-    ("Amazon",               "https://www.amazon.jobs/en/search?loc_query=Cairo"),
-    ("IBM",                  "https://careers.ibm.com/search/?q=&location=Egypt"),
-    ("Oracle",               "https://eeho.fa.em2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/requisitions?location=Egypt"),
-    ("Dell",                 "https://jobs.dell.com/search-jobs/Egypt"),
-    ("Cisco",                "https://jobs.cisco.com/jobs/SearchJobs/?21178=%5B169594%5D&21178_format=6020&listFilterMode=1"),
+    ("Microsoft",            "https://jobs.careers.microsoft.com/global/en/search?lc=Egypt&et=Internship"),
+    ("Google",               "https://www.google.com/about/careers/applications/jobs/results/?location=Egypt&employment_type=INTERN"),
+    ("Amazon",               "https://www.amazon.jobs/en/search?base_query=intern&loc_query=Cairo&country%5B%5D=EGY"),
+    ("IBM",                  "https://careers.ibm.com/search/?q=intern&country=EG"),
+    ("Oracle",               "https://eeho.fa.em2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/requisitions?location=Egypt&locationLevel=country"),
+    ("Dell",                 "https://jobs.dell.com/en/search-jobs/Egypt/375/2/2"),
+    ("Cisco",                "https://jobs.cisco.com/jobs/SearchJobs/?listFilterMode=1&21181=%5B%22Egypt%22%5D"),
 
     # Chip design / EDA
-    ("Synopsys",             "https://careers.synopsys.com/search-jobs/Egypt"),
-    ("Cadence",              "https://cadence.wd1.myworkdayjobs.com/External_Careers?locations=Egypt"),
+    ("Synopsys",             "https://careers.synopsys.com/search-jobs/Egypt/44805/1"),
+    ("Cadence",              "https://cadence.wd1.myworkdayjobs.com/External_Careers?locationCountry=Egypt"),
 
     # Energy / oilfield
-    ("SLB (Schlumberger)",   "https://careers.slb.com/jobsearch?location=Egypt"),
-    ("Halliburton",          "https://jobs.halliburton.com/search/?q=&locationsearch=Egypt"),
-    ("Baker Hughes",         "https://careers.bakerhughes.com/global/en/search-results?location=Egypt"),
+    ("SLB (Schlumberger)",   "https://careers.slb.com/jobsearch?location=Egypt&keyword=intern"),
+    ("Halliburton",          "https://jobs.halliburton.com/search/?q=intern&locationsearch=Egypt"),
+    ("Baker Hughes",         "https://careers.bakerhughes.com/global/en/search-results?keywords=intern&country=Egypt"),
 
     # Consulting tech arms
-    ("PwC Middle East",      "https://www.pwc.com/m1/en/careers/students.html"),
-    ("Deloitte",             "https://jobs2.deloitte.com/global/en/search-results?location=Egypt"),
-    ("EY",                   "https://careers.ey.com/ey/search/?createNewAlert=false&q=&locationsearch=Egypt"),
-    ("Accenture",            "https://www.accenture.com/eg-en/careers/jobsearch"),
+    ("PwC Middle East",      "https://www.pwc.com/m1/en/careers/experienced-jobs/jobs-list.html"),
+    ("Deloitte",             "https://jobsmiddleeast.deloitte.com/middleeast/job-search-results/?keywords=intern&location=Egypt"),
+    ("EY",                   "https://careers.ey.com/ey/search/?createNewAlert=false&q=intern&locationsearch=Egypt"),
+    ("Accenture",            "https://www.accenture.com/eg-en/careers/jobsearch?jk=intern&jl=Cairo"),
 
     # MENA scaleups (often have own ATS)
     ("Paymob",               "https://paymob.com/en/careers"),

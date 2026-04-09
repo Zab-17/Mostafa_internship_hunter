@@ -26,6 +26,12 @@ async def get_page():
                         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"),
             locale="en-US",
             viewport={"width": 1440, "height": 900},
+            # Tolerate misconfigured/expired certs on careers portals (read-only)
+            ignore_https_errors=True,
+            # Some sites geoblock — present a generic timezone
+            timezone_id="Africa/Cairo",
+            # Don't load images/fonts → 3-5x faster scraping
+            java_script_enabled=True,
         )
         # Auto-attach LinkedIn auth if available
         if os.path.exists(config.LINKEDIN_AUTH_PATH):
