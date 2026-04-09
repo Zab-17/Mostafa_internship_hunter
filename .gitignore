@@ -1,0 +1,52 @@
+# ── Secrets (NEVER commit) ─────────────────────────────────────
+credentials.json
+*credentials*.json
+service_account*.json
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+linkedin_auth*.json
+*_auth.json
+
+# ── Persistent state / scraped data (PII risk) ─────────────────
+db/*.db
+db/*.sqlite
+db/*.sqlite3
+output/
+!output/.gitkeep
+*.log
+
+# ── Python ─────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg
+
+# ── Virtual envs ───────────────────────────────────────────────
+venv/
+env/
+.venv/
+.env/
+
+# ── IDE / OS ───────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ── Playwright ─────────────────────────────────────────────────
+playwright-report/
+test-results/
+.playwright/
