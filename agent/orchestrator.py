@@ -243,8 +243,13 @@ For each portal URL:
 - Call **collect_jobs_from_portal** to get new job-detail URLs.
 - Skip portals that return zero new URLs and move on.
 
-### Phase 3 — Also scrape Wuzzuf + LinkedIn
-For the broad Wuzzuf listings AND for each keyword on LinkedIn (the seed list already includes them), do the same: collect_jobs_from_portal → fetch_job_details → save_verdict.
+### Phase 3 — Wuzzuf + LinkedIn (MANDATORY, do not skip)
+After you've worked through every company portal in Phase 2, you MUST scrape Wuzzuf and LinkedIn before finishing. They're appended to your portal queue automatically (you'll see "Wuzzuf" and "LinkedIn" entries near the end of the list). For each one:
+- Call **collect_jobs_from_portal** with the listing URL.
+- For each new URL returned, call **fetch_job_details** and read the description.
+- Apply the same 7 rules and save_verdict.
+
+Wuzzuf is where smaller Egyptian shops (Whispyr AI, Genify.ai, Sequel Solutions, Appgain, etc.) post their internships — these almost never appear on the big-co portals. LinkedIn is where you'll catch any remaining Cairo intern listings cross-posted from company ATSs. **If you stop after Phase 2 without doing Phase 3, you have failed the run.** Even if Phase 2 produced zero accepts, Phase 3 must still happen.
 
 ### Phase 4 — Read every job
 For each new URL: call **fetch_job_details** → READ the full description text yourself → judge against the 6 rules → call **save_verdict** with ACCEPT or REJECT, a one-sentence reason that quotes something specific from the description, and a fit_score 0-10.
