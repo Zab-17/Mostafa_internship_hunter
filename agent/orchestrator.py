@@ -24,6 +24,7 @@ from claude_agent_sdk import (
 
 from agent.tools.scraper import collect_job_urls, fetch_job
 from agent.tools.discover import google_search_companies, guess_careers_url
+from datetime import datetime
 from agent.tools.sheets_writer import write_markdown_report
 from agent.tools.sheets_appender import append_leads_to_sheet
 from agent.browser import close_browser, linkedin_auth_exists, linkedin_auth_setup_command
@@ -89,9 +90,9 @@ async def fetch_job_tool(args):
 
 @tool(
     "save_verdict",
-    "Save your verdict on a job to the dedup cache. Mostafa will never re-process this URL again. Pass: url, company, title, verdict (ACCEPT or REJECT), reason (one sentence), fit_score (0-10), posted, and the description text you reviewed.",
+    "Save your verdict on a job to the dedup cache. Mostafa will never re-process this URL again. Pass: url, company, title, verdict (ACCEPT or REJECT), reason (one sentence), fit_score (0-10), posted, the raw description text you reviewed, and (REQUIRED for ACCEPTs) description_summary — a 2-3 sentence summary of the role: what the intern actually does day-to-day, the required tech stack, the duration if mentioned, and why it fits the user's keywords.",
     {"url": str, "company": str, "title": str, "verdict": str, "reason": str,
-     "fit_score": int, "posted": str, "description": str},
+     "fit_score": int, "posted": str, "description": str, "description_summary": str},
 )
 async def save_verdict_tool(args):
     remember(
@@ -108,6 +109,7 @@ async def save_verdict_tool(args):
                 "company": args["company"], "title": args["title"],
                 "url": args["url"], "posted": args.get("posted", ""),
                 "fit_score": args.get("fit_score", 0), "reason": args["reason"],
+                "description_summary": args.get("description_summary", ""),
             }])
             sheet_msg = f" → sheet: +{n} row" if n else " → sheet: dup"
         except Exception as e:
@@ -252,9 +254,11 @@ After you've worked through every company portal in Phase 2, you MUST scrape Wuz
 Wuzzuf is where smaller Egyptian shops (Whispyr AI, Genify.ai, Sequel Solutions, Appgain, etc.) post their internships — these almost never appear on the big-co portals. LinkedIn is where you'll catch any remaining Cairo intern listings cross-posted from company ATSs. **If you stop after Phase 2 without doing Phase 3, you have failed the run.** Even if Phase 2 produced zero accepts, Phase 3 must still happen.
 
 ### Phase 4 — Read every job
-For each new URL: call **fetch_job_details** → READ the full description text yourself → judge against the 6 rules → call **save_verdict** with ACCEPT or REJECT, a one-sentence reason that quotes something specific from the description, and a fit_score 0-10.
+For each new URL: call **fetch_job_details** → READ the full description text yourself → judge against the 7 rules → call **save_verdict** with ACCEPT or REJECT, a one-sentence reason that quotes something specific from the description, a fit_score 0-10, and (FOR ACCEPTS) a `description_summary` field.
 
 **READING THE DESCRIPTION IS NON-NEGOTIABLE.** Do not REJECT based on the title alone. Do not ACCEPT based on the title alone. The reason field must reference something concrete from the description (e.g., "requires Python and TensorFlow, exactly matches the AI keyword").
+
+**Description summary requirement (ACCEPTs only):** Every ACCEPT MUST include `description_summary`: 2-3 short sentences explaining (1) what the intern actually does day-to-day, (2) the required tech stack, (3) the duration if mentioned, and (4) why it fits Zeyad's keywords. Example: "Build data pipelines and ETL workflows at PwC ETIC Cairo on real client engagements. Requires Python and SQL. 5-6 month internship for 2026 undergraduates. Strong fit for the data engineering keyword." REJECTs do not need this field.
 
 ### Phase 5 — Track companies
 For EVERY real company portal you scan (Vodafone, Siemens, Valeo, Microsoft, etc. — NOT Wuzzuf or LinkedIn), call **track_company_scanned** with the company name, careers URL, jobs_found count, and jobs_accepted count. This list goes into the final report so {USER_NAME} can see exactly which companies were searched.
@@ -274,6 +278,7 @@ When done with every portal, call **write_final_report** with a run_label. The r
 async def run_mostafa(keywords: list[str], season: str, year: int,
                       city: str, country: str, max_age_days: int):
     init_db()
+    run_start = datetime.now()
 
     print("\n" + "=" * 60)
     print("  🎯 MOSTAFA — Internship Hunter")
@@ -339,5 +344,33 @@ async def run_mostafa(keywords: list[str], season: str, year: int,
     except Exception as e:
         print(f"\n❌ Mostafa error: {e}")
     finally:
+        # Guaranteed final flush — push only THIS RUN's accepted leads.
+        # The sheet dedup (_existing_urls) prevents double-writing, but
+        # we also track run_start to avoid cross-contamination between
+        # tabs when running with --tab.
+        try:
+            from agent.tools.sheets_appender import append_leads_to_sheet
+            from db.cache import get_accepted
+            leads = get_accepted()
+            # Only flush leads first_seen after this run started
+            run_start_iso = run_start.isoformat() if run_start else "1970-01-01"
+            run_leads = [L for L in leads if (L.get("first_seen", "") >= run_start_iso)]
+            if run_leads:
+                n = append_leads_to_sheet(run_leads)
+                print(f"\n📊 Final sheet flush: {n} new rows appended ({len(run_leads)} from this run, {len(leads)} total in cache)")
+            else:
+                print(f"\n📊 No new leads from this run to flush ({len(leads)} total in cache from all runs).")
+        except Exception as e:
+            print(f"\n⚠️  Final sheet flush failed: {e}")
+
+        # Also write the cumulative master markdown report
+        try:
+            from agent.tools.sheets_writer import write_markdown_report
+            from db.cache import get_scanned_companies
+            path = write_markdown_report(get_accepted(), companies=get_scanned_companies())
+            print(f"📝 Master report: {path}")
+        except Exception as e:
+            print(f"⚠️  Master report write failed: {e}")
+
         await close_browser()
         print("\nBrowser closed. Mostafa signing off.")

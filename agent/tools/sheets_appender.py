@@ -17,9 +17,14 @@ import gspread
 
 import config
 
-WORKSHEET_NAME = "Mostafa Internships"
+DEFAULT_WORKSHEET_NAME = "Mostafa Internships"
 HEADERS = ["Scrape Date", "Company", "Job Title", "Posted", "Fit Score",
-           "Reason", "Apply URL", "Source"]
+           "Reason", "Apply URL", "Source", "Job Description"]
+
+
+def _worksheet_name() -> str:
+    """Per-run worksheet selection — MOSTAFA_WORKSHEET_NAME env wins over default."""
+    return os.environ.get("MOSTAFA_WORKSHEET_NAME") or DEFAULT_WORKSHEET_NAME
 
 
 def _is_configured() -> bool:
@@ -29,10 +34,11 @@ def _is_configured() -> bool:
 def _get_worksheet() -> gspread.Worksheet:
     gc = gspread.service_account(filename=config.GOOGLE_CREDENTIALS_PATH)
     sh = gc.open_by_key(config.GOOGLE_SHEETS_ID)
+    name = _worksheet_name()
     try:
-        ws = sh.worksheet(WORKSHEET_NAME)
+        ws = sh.worksheet(name)
     except gspread.WorksheetNotFound:
-        ws = sh.add_worksheet(title=WORKSHEET_NAME, rows=2000, cols=len(HEADERS))
+        ws = sh.add_worksheet(title=name, rows=2000, cols=len(HEADERS))
         ws.append_row(HEADERS, value_input_option="RAW")
     # Ensure header row exists
     first = ws.row_values(1)
@@ -84,6 +90,7 @@ def append_leads_to_sheet(leads: list[dict]) -> int:
             L.get("reason", ""),
             url,
             _detect_source(url),
+            L.get("description_summary", ""),
         ])
     if not new_rows:
         return 0

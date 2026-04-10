@@ -8,6 +8,7 @@ Examples:
 """
 import argparse
 import asyncio
+import os
 
 from agent.orchestrator import run_mostafa
 import config
@@ -23,7 +24,12 @@ def main():
     p.add_argument("--country", default=config.DEFAULT_COUNTRY)
     p.add_argument("--max-age", type=int, default=config.MAX_AGE_DAYS,
                    help="Maximum days since posting (default 90)")
+    p.add_argument("--tab", default=None,
+                   help="Google Sheet tab name to append to (default 'Mostafa Internships')")
     args = p.parse_args()
+
+    if args.tab:
+        os.environ["MOSTAFA_WORKSHEET_NAME"] = args.tab
 
     asyncio.run(run_mostafa(
         keywords=args.keywords,
