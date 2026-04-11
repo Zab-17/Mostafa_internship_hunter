@@ -100,6 +100,7 @@ async def save_verdict_tool(args):
         verdict=args["verdict"], reason=args["reason"],
         fit_score=args.get("fit_score", 0), posted=args.get("posted", ""),
         description=args.get("description", ""),
+        description_summary=args.get("description_summary", ""),
     )
     # Push ACCEPTs to the sheet immediately so partial runs still produce rows
     sheet_msg = ""
@@ -319,11 +320,58 @@ async def run_mostafa(keywords: list[str], season: str, year: int,
         f"then save your verdict. At the end, write the final markdown report and give me a summary."
     )
 
+    # ── Plugin isolation (CRITICAL — do not remove) ──────────────────
+    # Mostafa's embedded Claude CLI must NOT load the user's ~/.claude/ plugins.
+    # The @playwright/mcp plugin in particular registers browser_* tools that
+    # spawn a VISIBLE Chromium and, when looped over hundreds of job URLs,
+    # exhausts RAM and hard-crashes the laptop (kernel panic → reboot).
+    #
+    # We previously tried `setting_sources=[]` here, but that was a silent
+    # no-op: the Claude Agent SDK checks `if self._options.setting_sources:`
+    # at subprocess_cli.py:283, which is FALSY for an empty list, so the
+    # `--setting-sources` flag was never actually passed to the CLI and the
+    # embedded process fell back to its default (load everything).
+    #
+    # The correct mechanism is `--strict-mcp-config`: it tells the CLI to
+    # only use MCP servers passed via `--mcp-config` (which the SDK already
+    # uses to wire up our in-process `mostafa-tools` server) and IGNORE every
+    # other MCP configuration — including all plugin-defined ones. This keeps
+    # OAuth auth working (unlike `--bare`, which would break it) and is a
+    # structural fix rather than a leaky deny-list.
     options = ClaudeAgentOptions(
         system_prompt=build_system_prompt(keywords, season, year, city, country, max_age_days),
         mcp_servers={"mostafa": server},
         permission_mode="bypassPermissions",
         max_turns=400,
+        # THE real fix: render `--strict-mcp-config` on the embedded CLI.
+        # extra_args maps to `--<flag> [value]`; None means boolean flag.
+        extra_args={"strict-mcp-config": None},
+        # Belt-and-braces: even if a plugin ever leaks in through another
+        # path, explicitly deny every @playwright/mcp browser_* tool that
+        # could spawn a visible Chrome. Listed exhaustively this time.
+        disallowed_tools=[
+            "mcp__plugin_playwright_playwright__browser_navigate",
+            "mcp__plugin_playwright_playwright__browser_navigate_back",
+            "mcp__plugin_playwright_playwright__browser_click",
+            "mcp__plugin_playwright_playwright__browser_close",
+            "mcp__plugin_playwright_playwright__browser_console_messages",
+            "mcp__plugin_playwright_playwright__browser_drag",
+            "mcp__plugin_playwright_playwright__browser_evaluate",
+            "mcp__plugin_playwright_playwright__browser_file_upload",
+            "mcp__plugin_playwright_playwright__browser_fill_form",
+            "mcp__plugin_playwright_playwright__browser_handle_dialog",
+            "mcp__plugin_playwright_playwright__browser_hover",
+            "mcp__plugin_playwright_playwright__browser_network_requests",
+            "mcp__plugin_playwright_playwright__browser_press_key",
+            "mcp__plugin_playwright_playwright__browser_resize",
+            "mcp__plugin_playwright_playwright__browser_run_code",
+            "mcp__plugin_playwright_playwright__browser_select_option",
+            "mcp__plugin_playwright_playwright__browser_snapshot",
+            "mcp__plugin_playwright_playwright__browser_tabs",
+            "mcp__plugin_playwright_playwright__browser_take_screenshot",
+            "mcp__plugin_playwright_playwright__browser_type",
+            "mcp__plugin_playwright_playwright__browser_wait_for",
+        ],
     )
 
     try:

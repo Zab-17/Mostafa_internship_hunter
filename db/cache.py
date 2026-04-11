@@ -84,12 +84,13 @@ def filter_unseen(urls: list[str]) -> list[str]:
 
 
 def remember(url: str, company: str, title: str, verdict: str, reason: str,
-             fit_score: int, posted: str, description: str = ""):
+             fit_score: int, posted: str, description: str = "",
+             description_summary: str = ""):
     conn = sqlite3.connect(DB_PATH)
     conn.execute(
-        "INSERT OR REPLACE INTO seen_jobs VALUES (?,?,?,?,?,?,?,?,?)",
+        "INSERT OR REPLACE INTO seen_jobs VALUES (?,?,?,?,?,?,?,?,?,?)",
         (url, company, title, verdict, reason, fit_score, posted,
-         datetime.utcnow().isoformat(), description[:2000]),
+         datetime.utcnow().isoformat(), description[:2000], description_summary[:500]),
     )
     conn.commit()
     conn.close()

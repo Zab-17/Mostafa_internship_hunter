@@ -37,8 +37,25 @@ USER_BACKGROUND = os.environ.get(
 
 # ─── Default search parameters (overridden by CLI flags in run.py) ────
 DEFAULT_KEYWORDS = [
+    # ─ Original generalist coverage ─
     "software engineer", "ai", "machine learning",
     "backend", "full stack", "data engineer", "computer engineer",
+
+    # ─ Tier 1 — AI / LLM / automation direct hits ─
+    "ai engineer", "llm engineer", "ai agent engineer",
+    "agentic ai", "applied ai", "generative ai",
+    "automation engineer", "ai automation", "prompt engineer",
+
+    # ─ Tier 2 — adjacent roles ─
+    "machine learning engineer", "mlops",
+    "workflow automation", "rpa developer",
+    "process automation", "intelligent automation",
+    "ai integration", "ai solutions engineer", "developer experience",
+
+    # ─ Tier 4 — high-signal longtails (rare but high hit-rate) ─
+    "langchain", "langgraph", "claude agent sdk",
+    "playwright automation", "fastapi", "openai",
+    "retrieval augmented generation", "ai orchestration",
 ]
 DEFAULT_CITY = os.environ.get("MOSTAFA_DEFAULT_CITY", "Cairo")
 DEFAULT_COUNTRY = os.environ.get("MOSTAFA_DEFAULT_COUNTRY", "Egypt")
