@@ -273,6 +273,13 @@ When done with every portal, call **write_final_report** with a run_label. The r
 - NEVER fabricate or guess. If a description doesn't load, REJECT with reason "fetch failed".
 - The dedup cache means you will NEVER see the same URL twice across runs. Trust it.
 - Be strict on rule 3 (relevance). A "Marketing intern who codes a bit" is NOT a software intern. A "Sales engineer trainee" is NOT a backend intern.
+
+## CONCURRENCY DISCIPLINE — CRITICAL
+The shared headless Chromium browser deadlocks when multiple Playwright pages are open at the same time, especially when one of them is hung on a dead URL. This has caused MULTIPLE freezes where Mostafa just stops mid-run.
+
+**Hard rule: NEVER call `collect_jobs_from_portal` or `fetch_job_details` in parallel.** Process portals and URLs strictly sequentially — one tool call, wait for the result, then the next. The other tools (`discover_companies`, `guess_careers_page`, `is_already_seen`, `get_run_stats`, `save_verdict`, `track_company_scanned`) are safe to call in parallel because they don't touch the browser, but the two browser-bound tools above must be one-at-a-time.
+
+If you're tempted to "speed things up" by batching browser calls — DON'T. The dedup cache means a slow-but-finishing run beats a fast-but-deadlocked one every time. A serialized sweep through 40 portals takes ~20-30 minutes; a parallel sweep takes ~0 minutes because it hangs.
 """
 
 
@@ -343,6 +350,7 @@ async def run_mostafa(keywords: list[str], season: str, year: int,
         mcp_servers={"mostafa": server},
         permission_mode="bypassPermissions",
         max_turns=400,
+        model="claude-opus-4-7",
         # THE real fix: render `--strict-mcp-config` on the embedded CLI.
         # extra_args maps to `--<flag> [value]`; None means boolean flag.
         extra_args={"strict-mcp-config": None},
@@ -402,7 +410,7 @@ async def run_mostafa(keywords: list[str], season: str, year: int,
             leads = get_accepted()
             # Only flush leads first_seen after this run started
             run_start_iso = run_start.isoformat() if run_start else "1970-01-01"
-            run_leads = [L for L in leads if (L.get("first_seen", "") >= run_start_iso)]
+            run_leads = [L for L in leads if (L.get("first_seen") or "") >= run_start_iso]
             if run_leads:
                 n = append_leads_to_sheet(run_leads)
                 print(f"\n📊 Final sheet flush: {n} new rows appended ({len(run_leads)} from this run, {len(leads)} total in cache)")

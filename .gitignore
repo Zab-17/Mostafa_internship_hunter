@@ -50,3 +50,6 @@ Thumbs.db
 playwright-report/
 test-results/
 .playwright/
+
+# MCP playwright session logs
+.playwright-mcp/

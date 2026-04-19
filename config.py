@@ -35,8 +35,8 @@ USER_BACKGROUND = os.environ.get(
 )
 
 
-# ─── Default search parameters (overridden by CLI flags in run.py) ────
-DEFAULT_KEYWORDS = [
+# ─── Keyword profiles (select via --profile flag in run.py) ────────────
+PROFILE_AI = [
     # ─ Original generalist coverage ─
     "software engineer", "ai", "machine learning",
     "backend", "full stack", "data engineer", "computer engineer",
@@ -52,11 +52,34 @@ DEFAULT_KEYWORDS = [
     "process automation", "intelligent automation",
     "ai integration", "ai solutions engineer", "developer experience",
 
-    # ─ Tier 4 — high-signal longtails (rare but high hit-rate) ─
+    # ─ Tier 3 — high-signal longtails (rare but high hit-rate) ─
     "langchain", "langgraph", "claude agent sdk",
     "playwright automation", "fastapi", "openai",
     "retrieval augmented generation", "ai orchestration",
 ]
+
+PROFILE_ELECTRONICS = [
+    "electronics engineer", "embedded systems", "firmware engineer",
+    "FPGA", "VLSI", "ASIC design", "PCB design", "hardware engineer",
+    "analog design", "digital design", "RF engineer", "power electronics",
+    "signal processing", "embedded software", "microcontroller",
+    "chip design", "verification engineer", "RTL design",
+    "circuit design", "semiconductor",
+    "supply chain", "communications engineer",
+    "electronics and communications research",
+    "electronics circuit design", "field test engineer",
+    "network planning engineer", "service engineer",
+    "signal processing engineer", "systems engineer", "technical director",
+]
+
+PROFILES = {
+    "ai": PROFILE_AI,
+    "electronics": PROFILE_ELECTRONICS,
+    "all": PROFILE_AI + PROFILE_ELECTRONICS,
+}
+
+# Default profile is "ai" (profile 1)
+DEFAULT_KEYWORDS = PROFILE_AI
 DEFAULT_CITY = os.environ.get("MOSTAFA_DEFAULT_CITY", "Cairo")
 DEFAULT_COUNTRY = os.environ.get("MOSTAFA_DEFAULT_COUNTRY", "Egypt")
 DEFAULT_SEASON = os.environ.get("MOSTAFA_DEFAULT_SEASON", "summer")
@@ -133,11 +156,66 @@ COMPANY_PORTALS = [
     ("EY",                   "https://careers.ey.com/ey/search/?createNewAlert=false&q=intern&locationsearch=Egypt"),
     ("Accenture",            "https://www.accenture.com/eg-en/careers/jobsearch?jk=intern&jl=Cairo"),
 
+    # Electronics / semiconductors — added Apr 2026
+    ("Intel",                "https://jobs.intel.com/en/search-jobs/Egypt"),
+    ("Alcatel-Lucent Enterprise", "https://www.al-enterprise.com/en/company/careers"),
+
+    # Consulting / industrial — added Apr 2026
+    ("Booz Allen Hamilton",  "https://careers.boozallen.com/jobs/search?location=Egypt"),
+    ("P&G",                  "https://www.pgcareers.com/global/en/search-results?keywords=&country=Egypt"),
+
+    # MENA tech
+    ("ITWorx",               "https://www.itworx.com/careers/"),
+
     # MENA scaleups (often have own ATS)
     ("Paymob",               "https://paymob.com/en/careers"),
     ("MNT-Halan",            "https://halan.com/careers"),
     ("Instabug",             "https://instabug.com/jobs"),
     ("Swvl",                 "https://www.swvl.com/careers"),
+
+    # ─── Apr 2026 expansion — high-yield Cairo CS/CE/AI sources ───
+    # Egyptian banks with formal tech/IT internship programs
+    ("CIB Egypt",            "https://careers.cibeg.com/jobs"),
+    ("QNB Alahli",           "https://www.qnbalahli.com/sites/qnb/qnbegypt/page/careers"),
+    ("Banque Misr",          "https://www.banquemisr.com/en/careers"),
+    ("NBE",                  "https://www.nbe.com.eg/NBE/E/#/EN/CareerOpportunities"),
+    ("EFG Hermes",           "https://efghermes.bamboohr.com/careers"),
+
+    # Chip / EDA / semiconductor R&D — strong Cairo presence
+    ("AMD",                  "https://careers.amd.com/careers-home/jobs?location=Egypt"),
+    ("ARM",                  "https://careers.arm.com/search-jobs/Egypt"),
+    ("Mentor (legacy)",      "https://careers.mentor.com/search-jobs/Egypt"),
+    ("Qualcomm",             "https://careers.qualcomm.com/careers/SearchJobs/?listFilterMode=1&21181=%5B%22Egypt%22%5D"),
+
+    # Big enterprise — Cairo offices that hire interns
+    ("SAP Egypt",            "https://jobs.sap.com/search/?q=&locationsearch=Cairo&country=EG"),
+    ("Capgemini Egypt",      "https://www.capgemini.com/jobs/?query=&category=&location=Cairo"),
+    ("Atos",                 "https://atos.net/en/careers/job-search?location_country=Egypt"),
+    ("DXC Technology",       "https://careers.dxc.com/global/en/search-results?keywords=&location=Egypt"),
+    ("KPMG Egypt",           "https://www.kpmg.com/eg/en/home/careers.html"),
+
+    # Fintech / startups in Cairo
+    ("Fawry",                "https://fawry.com/careers/"),
+    ("Khazna",               "https://khazna.app/careers/"),
+    ("Sympl",                "https://sympl.ai/careers"),
+    ("Trella",               "https://www.trella.app/careers"),
+    ("MaxAB",                "https://maxab.io/careers"),
+    ("Breadfast",            "https://breadfast.com/careers"),
+    ("Aramex",               "https://www.aramex.com/careers"),
+
+    # MENA software houses with intern programs
+    ("Sumerge",              "https://sumerge.com/careers/"),
+    ("Robusta Studio",       "https://robustastudio.com/careers"),
+    ("Cequens",              "https://www.cequens.com/careers"),
+    ("Almentor",             "https://www.almentor.net/careers"),
+
+    # Telco — additional
+    ("Telecom Egypt (WE)",   "https://www.te.eg/wps/portal/te/Personal/Discover_more/About_Us/careers"),
+    ("Etisalat Misr",        "https://www.eand.com/en/about-us/careers.html"),
+
+    # Cloud / SaaS with MENA hiring
+    ("ServiceNow",           "https://careers.servicenow.com/jobs/?country=Egypt"),
+    ("Salesforce",           "https://careers.salesforce.com/en/jobs/?location=Egypt"),
 ]
 
 # ─── Tier 3 — Aggregators (Wuzzuf + LinkedIn) ────────────────────────
