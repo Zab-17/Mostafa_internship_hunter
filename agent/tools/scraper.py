@@ -86,18 +86,28 @@ async def collect_job_urls(listing_url: str, max_urls: int = 50) -> list[str]:
             return []
 
         # Wait for SPAs to populate. Try networkidle, fall back to fixed wait.
+        # Microsoft, Vodafone, Workday tenants need a longer idle window — their
+        # job tiles are rendered after at least one async fetch settles.
         try:
-            await page.wait_for_load_state("networkidle", timeout=12000)
+            await page.wait_for_load_state("networkidle", timeout=20000)
         except Exception:
-            await page.wait_for_timeout(4000)
+            await page.wait_for_timeout(6000)
 
-        # Try to wait for ANY known ATS job selector to appear (proves jobs loaded)
+        # Try to wait for ANY known ATS job selector to appear (proves jobs loaded).
+        # Bump per-selector timeout — some portals are slow on first paint.
+        any_selector_hit = False
         for sel in ATS_JOB_SELECTORS:
             try:
-                await page.wait_for_selector(sel, timeout=2000)
+                await page.wait_for_selector(sel, timeout=3000)
+                any_selector_hit = True
                 break
             except Exception:
                 continue
+
+        # Last-resort: if no ATS selector matched, give the page a final 3s
+        # quiet window for any straggling fetches before we collect anchors.
+        if not any_selector_hit:
+            await page.wait_for_timeout(3000)
 
         # Scroll aggressively to load lazy content (some portals lazy-load on scroll)
         for _ in range(8):

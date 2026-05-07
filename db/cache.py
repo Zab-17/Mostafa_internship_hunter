@@ -18,7 +18,9 @@ def init_db():
             fit_score INTEGER,
             posted TEXT,
             first_seen TEXT,
-            description TEXT
+            description TEXT,
+            description_summary TEXT DEFAULT '',
+            pushed_to_sheet INTEGER DEFAULT 0
         )
     """)
     conn.execute("""
@@ -30,6 +32,17 @@ def init_db():
             last_scanned TEXT
         )
     """)
+    # Idempotent migrations — for DBs created before these columns existed.
+    # ALTER TABLE ... ADD COLUMN raises if the column already exists, so we
+    # swallow that specific error.
+    for ddl in [
+        "ALTER TABLE seen_jobs ADD COLUMN description_summary TEXT DEFAULT ''",
+        "ALTER TABLE seen_jobs ADD COLUMN pushed_to_sheet INTEGER DEFAULT 0",
+    ]:
+        try:
+            conn.execute(ddl)
+        except sqlite3.OperationalError:
+            pass  # column already exists
     conn.commit()
     conn.close()
 
@@ -86,9 +99,28 @@ def filter_unseen(urls: list[str]) -> list[str]:
 def remember(url: str, company: str, title: str, verdict: str, reason: str,
              fit_score: int, posted: str, description: str = "",
              description_summary: str = ""):
+    """Persist a verdict. Named columns (not positional) so the migration-added
+    `pushed_to_sheet` column doesn't break the insert. UPSERT preserves
+    `pushed_to_sheet` on conflict — a re-insert of a URL that was already
+    pushed should NOT reset its pushed state."""
     conn = sqlite3.connect(DB_PATH)
     conn.execute(
-        "INSERT OR REPLACE INTO seen_jobs VALUES (?,?,?,?,?,?,?,?,?,?)",
+        """
+        INSERT INTO seen_jobs
+            (url, company, title, verdict, reason, fit_score, posted,
+             first_seen, description, description_summary)
+        VALUES (?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(url) DO UPDATE SET
+            company=excluded.company,
+            title=excluded.title,
+            verdict=excluded.verdict,
+            reason=excluded.reason,
+            fit_score=excluded.fit_score,
+            posted=excluded.posted,
+            first_seen=excluded.first_seen,
+            description=excluded.description,
+            description_summary=excluded.description_summary
+        """,
         (url, company, title, verdict, reason, fit_score, posted,
          datetime.utcnow().isoformat(), description[:2000], description_summary[:500]),
     )
@@ -104,6 +136,40 @@ def get_accepted() -> list[dict]:
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+def filter_unpushed(urls: list[str]) -> list[str]:
+    """Return only the URLs that have NOT yet been pushed to the Google Sheet.
+
+    SQLite is the single source of truth for 'have I sent this row once?' —
+    the user can delete rows from the sheet without us re-pushing them on the
+    next run.
+    """
+    if not urls:
+        return []
+    conn = sqlite3.connect(DB_PATH)
+    placeholders = ",".join("?" * len(urls))
+    rows = conn.execute(
+        f"SELECT url FROM seen_jobs WHERE url IN ({placeholders}) AND pushed_to_sheet = 1",
+        urls,
+    ).fetchall()
+    conn.close()
+    pushed = {r[0] for r in rows}
+    return [u for u in urls if u not in pushed]
+
+
+def mark_urls_pushed(urls: list[str]):
+    """Mark these URLs as pushed-to-sheet so they're never re-pushed."""
+    if not urls:
+        return
+    conn = sqlite3.connect(DB_PATH)
+    placeholders = ",".join("?" * len(urls))
+    conn.execute(
+        f"UPDATE seen_jobs SET pushed_to_sheet = 1 WHERE url IN ({placeholders})",
+        urls,
+    )
+    conn.commit()
+    conn.close()
 
 
 def stats() -> dict:

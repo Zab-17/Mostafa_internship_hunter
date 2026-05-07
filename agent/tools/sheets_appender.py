@@ -1,9 +1,14 @@
 """
 Append-only Google Sheets writer for Mostafa.
 
-Writes accepted leads to profile-specific tabs:
-  - "AI Internships" for AI/software leads
-  - "Electronics Internships" for electronics/hardware leads
+Writes accepted leads to Zeyad's profile-specific tabs:
+  - "Zeyadmaher AI/CS Internships"             — CS / CE / software / AI / data
+  - "Zeyadmaher Electronics Internships "      — electronics / hardware / EDA / chip
+  - "Zeyadmaher Mechatronics Internships "     — mechatronics / robotics / control / automation
+
+Note: the Electronics and Mechatronics tab names have a trailing space — that
+is the EXACT title in the live spreadsheet and gspread is whitespace-sensitive.
+Do not "fix" it without renaming the tab on the sheet first.
 
 Creates tabs + header rows if missing.
 Never wipes — every run appends new rows for jobs not yet on the sheet.
@@ -21,9 +26,11 @@ from datetime import datetime, timezone
 import gspread
 
 import config
+from db.cache import filter_unpushed, mark_urls_pushed
 
-TAB_AI = "Mostafa Internships"
-TAB_ELECTRONICS = "Mostafa Electronics"
+TAB_AI = "Zeyadmaher AI/CS Internships"
+TAB_ELECTRONICS = "Zeyadmaher Electronics Internships "
+TAB_MECHATRONICS = "Zeyadmaher Mechatronics Internships "
 HEADERS = ["Scrape Date", "Company", "Job Title", "Posted", "Fit Score",
            "Reason", "Apply URL", "Source", "Job Description"]
 
@@ -33,26 +40,44 @@ _ELECTRONICS_SIGNALS = {
     "hardware", "analog", "digital design", "rf engineer", "power electronics",
     "signal processing", "microcontroller", "chip design", "verification engineer",
     "rtl", "circuit", "semiconductor", "communications engineer", "field test",
-    "network planning", "service engineer", "systems engineer", "technical director",
+    "network planning", "service engineer", "technical director",
+}
+
+# Keywords that signal a mechatronics / robotics / control / automation role
+_MECHATRONICS_SIGNALS = {
+    "mechatronics", "robotics", "control system", "control engineer",
+    "motion control", "industrial automation", "plc", "scada", "hmi",
+    "servo", "actuator", "mechanical design", "mechanical engineer",
+    "smart manufacturing", "industry 4.0", "automation engineer",
+    "process automation engineer", "manufacturing engineer", "production engineer",
+    "instrumentation", "drives engineer", "robotic process",
 }
 
 
 def _classify_lead(lead: dict) -> str:
-    """Return 'electronics' or 'ai' based on the active profile, falling back
-    to a per-lead text classifier only when profile is 'all' or unset.
+    """Return 'ai', 'electronics', or 'mechatronics'.
 
-    The text classifier misroutes CE-aligned hardware roles (e.g. Siemens EDA
-    "Hardware Verification Intern" — accepted under the `computer engineer`
-    keyword) into the Electronics tab, which is wrong: the AI profile owns
-    those because the user is CS/CE. So when MOSTAFA_PROFILE is explicitly
-    'ai' or 'electronics', honor it as the source of truth.
+    Active profile (MOSTAFA_PROFILE env var) is the source of truth when set
+    explicitly to one of those three. Otherwise (profile == 'all' or unset)
+    fall back to a per-lead text classifier on title + reason.
+
+    The fallback was wrong about CS/CE-aligned hardware roles (e.g. Siemens EDA
+    "Hardware Verification Intern" — accepted under `computer engineer`), so the
+    explicit profile is honored as the source of truth when chosen.
     """
     profile = (os.environ.get("MOSTAFA_PROFILE") or "").lower()
     if profile == "ai":
         return "ai"
     if profile == "electronics":
         return "electronics"
+    if profile == "mechatronics":
+        return "mechatronics"
     blob = (lead.get("title", "") + " " + lead.get("reason", "")).lower()
+    # Check mechatronics first — it's narrower than electronics, so a hit here
+    # is more specific and should win over the electronics fallback.
+    for signal in _MECHATRONICS_SIGNALS:
+        if signal in blob:
+            return "mechatronics"
     for signal in _ELECTRONICS_SIGNALS:
         if signal in blob:
             return "electronics"
@@ -122,9 +147,23 @@ def _dedup_leads(leads: list[dict]) -> list[dict]:
 
 
 def append_leads_to_sheet(leads: list[dict]) -> int:
-    """Append accepted leads to AI/Electronics tabs. Deduplicates by (company, title).
-    Returns 0 silently if Sheets is not configured."""
+    """Append accepted leads to AI/Electronics/Mechatronics tabs. Deduplicates
+    by (company, title). Returns 0 silently if Sheets is not configured.
+
+    Source-of-truth for "have I pushed this URL once?" is the SQLite
+    `seen_jobs.pushed_to_sheet` column, NOT the live sheet contents. This way
+    a user can manually delete rows from the sheet without us re-appending
+    them on the next run.
+    """
     if not leads or not _is_configured():
+        return 0
+
+    # Filter out leads whose URL is already marked pushed in SQLite.
+    # This is the new "never re-push, even if user deleted from the sheet" gate.
+    incoming_urls = [L.get("url", "") for L in leads if L.get("url")]
+    unpushed = set(filter_unpushed(incoming_urls))
+    leads = [L for L in leads if L.get("url", "") in unpushed]
+    if not leads:
         return 0
 
     # Deduplicate input
@@ -133,9 +172,13 @@ def append_leads_to_sheet(leads: list[dict]) -> int:
     # Classify into buckets
     ai_leads = []
     elec_leads = []
+    mech_leads = []
     for L in leads:
-        if _classify_lead(L) == "electronics":
+        bucket = _classify_lead(L)
+        if bucket == "electronics":
             elec_leads.append(L)
+        elif bucket == "mechatronics":
+            mech_leads.append(L)
         else:
             ai_leads.append(L)
 
@@ -147,7 +190,13 @@ def append_leads_to_sheet(leads: list[dict]) -> int:
     # Also support legacy --tab override: if set, write everything to that tab
     override_tab = os.environ.get("MOSTAFA_WORKSHEET_NAME")
 
-    for tab_name, bucket in [(TAB_AI, ai_leads), (TAB_ELECTRONICS, elec_leads)]:
+    pushed_urls_this_call: list[str] = []
+
+    for tab_name, bucket in [
+        (TAB_AI, ai_leads),
+        (TAB_ELECTRONICS, elec_leads),
+        (TAB_MECHATRONICS, mech_leads),
+    ]:
         if not bucket:
             continue
         target_tab = override_tab or tab_name
@@ -156,6 +205,7 @@ def append_leads_to_sheet(leads: list[dict]) -> int:
         existing_urls = _existing_urls(ws)
 
         new_rows = []
+        new_urls_for_tab: list[str] = []
         for L in bucket:
             url = L.get("url", "")
             company = L.get("company", "").strip()
@@ -163,6 +213,10 @@ def append_leads_to_sheet(leads: list[dict]) -> int:
             key = (company.lower(), title.lower())
 
             if key in existing_keys or url in existing_urls:
+                # Already on the sheet. Mark it pushed so we never try again,
+                # even though we're not appending now.
+                if url:
+                    pushed_urls_this_call.append(url)
                 continue
 
             new_rows.append([
@@ -176,10 +230,17 @@ def append_leads_to_sheet(leads: list[dict]) -> int:
                 _detect_source(url),
                 L.get("description_summary", ""),
             ])
+            new_urls_for_tab.append(url)
             existing_keys.add(key)  # prevent intra-batch dupes
 
         if new_rows:
             ws.append_rows(new_rows, value_input_option="RAW")
             total_new += len(new_rows)
+            pushed_urls_this_call.extend(new_urls_for_tab)
+
+    # Mark every URL we either appended or saw already-on-sheet as pushed.
+    # Future calls will skip these via filter_unpushed().
+    if pushed_urls_this_call:
+        mark_urls_pushed([u for u in pushed_urls_this_call if u])
 
     return total_new

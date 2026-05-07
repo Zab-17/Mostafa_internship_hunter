@@ -56,6 +56,15 @@ PROFILE_AI = [
     "langchain", "langgraph", "claude agent sdk",
     "playwright automation", "fastapi", "openai",
     "retrieval augmented generation", "ai orchestration",
+
+    # ─ Tier 4 — portfolio-specific additions (May 2026, derived from
+    #   Zeyad's GitHub: Ahmed/canvas-reminder/ical-whatsapp-reminder
+    #   chatbots; content-creation-automation Remotion+Node;
+    #   calc-react/woordle.react React work; cross-cutting Python+JS) ─
+    "chatbot developer", "whatsapp automation",
+    "automation specialist", "web scraping",
+    "python developer", "node.js developer",
+    "react developer", "product engineer",
 ]
 
 PROFILE_ELECTRONICS = [
@@ -72,10 +81,22 @@ PROFILE_ELECTRONICS = [
     "signal processing engineer", "systems engineer", "technical director",
 ]
 
+PROFILE_MECHATRONICS = [
+    "mechatronics", "mechatronics engineer", "robotics engineer", "robotics",
+    "control systems engineer", "control engineer", "motion control",
+    "industrial automation", "automation engineer", "process automation",
+    "manufacturing engineer", "production engineer", "smart manufacturing",
+    "industry 4.0", "PLC programming", "PLC engineer", "SCADA engineer",
+    "HMI engineer", "instrumentation engineer", "servo drives",
+    "mechanical design engineer", "mechanical engineer", "CAD engineer",
+    "robotic process automation", "drives engineer",
+]
+
 PROFILES = {
     "ai": PROFILE_AI,
     "electronics": PROFILE_ELECTRONICS,
-    "all": PROFILE_AI + PROFILE_ELECTRONICS,
+    "mechatronics": PROFILE_MECHATRONICS,
+    "all": PROFILE_AI + PROFILE_ELECTRONICS + PROFILE_MECHATRONICS,
 }
 
 # Default profile is "ai" (profile 1)
@@ -115,6 +136,8 @@ GOOGLE_CREDENTIALS_PATH = os.environ.get(
 # Edit this list freely — it's not a secret.
 COMPANY_PORTALS = [
     # Automotive / hardware / embedded — verified URLs (Apr 2026)
+    ("BMW Group",            "https://www.bmwgroup.jobs/global/en/jobs.html?country=Egypt"),
+    ("Bavarian Auto Group",  "https://bag.com.eg/careers/"),
     ("Valeo",                "https://jobs.smartrecruiters.com/Valeo"),
     ("Siemens",              "https://jobs.siemens.com/careers?location=Egypt&pid=&filter_include_remote=false"),
     ("Siemens EDA",          "https://jobs.sw.siemens.com/locations/egy/jobs/"),
@@ -180,6 +203,7 @@ COMPANY_PORTALS = [
     ("Banque Misr",          "https://www.banquemisr.com/en/careers"),
     ("NBE",                  "https://www.nbe.com.eg/NBE/E/#/EN/CareerOpportunities"),
     ("EFG Hermes",           "https://efghermes.bamboohr.com/careers"),
+    ("Beltone Holding",      "https://beltoneholding.com/careers/"),
 
     # Chip / EDA / semiconductor R&D — strong Cairo presence
     ("AMD",                  "https://careers.amd.com/careers-home/jobs?location=Egypt"),
@@ -217,6 +241,28 @@ COMPANY_PORTALS = [
     ("ServiceNow",           "https://careers.servicenow.com/jobs/?country=Egypt"),
     ("Salesforce",           "https://careers.salesforce.com/en/jobs/?location=Egypt"),
 ]
+
+# ─── Tier 1.5 — ATS direct-API portals ───────────────────────────────
+# Each entry: (display_name, ats_type, board_slug)
+# ats_type ∈ {"greenhouse", "lever", "smartrecruiters"}
+# Mostafa hits these via JSON, no browser. Filter by Cairo/Egypt server-side.
+# Add new ones whenever you discover them (e.g. spotted a `boards.greenhouse.io/{x}`
+# link → append ("Company", "greenhouse", "x")).
+ATS_PORTALS = [
+    # SmartRecruiters — verified country=eg filter works
+    ("Bosch (ATS API)", "smartrecruiters", "BoschGroup"),
+    ("Valeo (ATS API)", "smartrecruiters", "Valeo"),
+
+    # Greenhouse — discover slugs by spotting `boards.greenhouse.io/{slug}` URLs
+    # in the wild. Many MENA-hiring companies route through Greenhouse:
+    ("Stripe (ATS API)", "greenhouse", "stripe"),
+    ("GitLab (ATS API)", "greenhouse", "gitlab"),
+    ("Zendesk (ATS API)", "greenhouse", "zendesk"),
+
+    # Lever — discover slugs by spotting `jobs.lever.co/{slug}` URLs
+    # (Mostafa can extract these from Google search results).
+]
+
 
 # ─── Tier 3 — Aggregators (Wuzzuf + LinkedIn) ────────────────────────
 WUZZUF_LISTINGS = [
